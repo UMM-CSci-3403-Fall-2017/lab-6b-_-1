@@ -1,12 +1,28 @@
 package xrate;
 
+import org.w3c.dom.Document;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+
+import org.xml.sax.SAXException;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+
+import java.io.IOException;
+import java.io.InputStream;
+
+import java.net.URL;
+import java.net.URLConnection;
+
 /**
  * Provide access to basic currency exchange rate services.
  * 
- * @author PUT YOUR TEAM NAME HERE
+ * @author _
  */
 public class ExchangeRateReader {
-
+    String baseURL;
     /**
      * Construct an exchange rate reader using the given base URL. All requests
      * will then be relative to that URL. If, for example, your source is Xavier
@@ -19,7 +35,7 @@ public class ExchangeRateReader {
      *            the base URL for requests
      */
     public ExchangeRateReader(String baseURL) {
-        // TODO Your code here
+        this.baseURL = baseURL;
     }
 
     /**
@@ -39,17 +55,54 @@ public class ExchangeRateReader {
      * @throws ParserConfigurationException
      * @throws SAXException
      */
-    public float getExchangeRate(String currencyCode, int year, int month, int day) {
-        // TODO Your code here
-        throw new UnsupportedOperationException();
+    public float getExchangeRate(String currencyCode, int year, int month, int day)
+            throws IOException, ParserConfigurationException, SAXException {
+        String dayS = (day+"");
+        String monthS = month +"";
+        if (day < 10){
+            dayS = "0"+ day;
+        }
+        if (month < 10){
+            monthS = "0"+ month;
+        }
+
+        String reqString = baseURL + year + "/" + monthS + "/" + dayS + ".xml";
+        String xml = "";
+        float er = -1;
+
+        URL reqURL = new URL(reqString);
+        URLConnection xc = reqURL.openConnection();
+        InputStream xmlStream = reqURL.openStream();
+
+        DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+        DocumentBuilder db = dbf.newDocumentBuilder();
+        Document doc = db.parse(xmlStream);
+
+        doc.getDocumentElement().normalize();
+        NodeList nl = doc.getElementsByTagName("fx");
+
+        for(int i = 0; i < nl.getLength(); i++){
+            Node node = nl.item(i);
+            NodeList nodes = node.getChildNodes();
+            Node exCode = nodes.item(1);
+
+            if(currencyCode.equals(exCode.getTextContent())){
+                Node exRate = nodes.item(3);
+                er = new Float(exRate.getTextContent());
+                break;
+            }
+        }
+        return er;
     }
 
     /**
      * Get the exchange rate of the first specified currency against the second
      * on the specified date.
      * 
-     * @param currencyCode
-     *            the currency code for the desired currency
+     * @param fromCurrency
+     *            the currency code for the currency to go from
+     * @param toCurrency
+     *            the currency code for the currency to go to
      * @param year
      *            the year as a four digit integer
      * @param month
@@ -61,10 +114,10 @@ public class ExchangeRateReader {
      * @throws ParserConfigurationException
      * @throws SAXException
      */
-    public float getExchangeRate(
-            String fromCurrency, String toCurrency,
-            int year, int month, int day) {
-        // TODO Your code here
-        throw new UnsupportedOperationException();
+    public float getExchangeRate(String fromCurrency, String toCurrency, int year, int month, int day)
+            throws ParserConfigurationException, SAXException, IOException {
+        float from = this.getExchangeRate(fromCurrency,year,month,day);
+        float to = this.getExchangeRate(toCurrency,year,month,day);
+        return from/to;
     }
 }
