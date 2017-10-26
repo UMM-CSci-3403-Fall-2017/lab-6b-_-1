@@ -57,6 +57,7 @@ public class ExchangeRateReader {
      */
     public float getExchangeRate(String currencyCode, int year, int month, int day)
             throws IOException, ParserConfigurationException, SAXException {
+        //If the ints are only 1 digit, we need them to be two digits
         String dayS = (day+"");
         String monthS = month +"";
         if (day < 10){
@@ -70,23 +71,34 @@ public class ExchangeRateReader {
         String xml = "";
         float er = -1;
 
+        //set up the connection
         URL reqURL = new URL(reqString);
         URLConnection xc = reqURL.openConnection();
         InputStream xmlStream = reqURL.openStream();
 
+        //build xml doc from input stream
         DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
         DocumentBuilder db = dbf.newDocumentBuilder();
         Document doc = db.parse(xmlStream);
 
+        /*
+        Step 1: normalize
+        Step 2: getElementsByTagName
+        Step 3: ????
+        Step 4: Profit!
+         */
         doc.getDocumentElement().normalize();
         NodeList nl = doc.getElementsByTagName("fx");
 
+        //loop through all fx elements
         for(int i = 0; i < nl.getLength(); i++){
             Node node = nl.item(i);
             NodeList nodes = node.getChildNodes();
             Node exCode = nodes.item(1);
 
+            //Look for the one matching our currency code
             if(currencyCode.equals(exCode.getTextContent())){
+                //get node with exchange rate
                 Node exRate = nodes.item(3);
                 er = new Float(exRate.getTextContent());
                 break;
@@ -116,6 +128,8 @@ public class ExchangeRateReader {
      */
     public float getExchangeRate(String fromCurrency, String toCurrency, int year, int month, int day)
             throws ParserConfigurationException, SAXException, IOException {
+        //Use our own rpc tool to get both rates from EUR and divide to get rid of the EUR
+        //dimensional analysis, yo
         float from = this.getExchangeRate(fromCurrency,year,month,day);
         float to = this.getExchangeRate(toCurrency,year,month,day);
         return from/to;
